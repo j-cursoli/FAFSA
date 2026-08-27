@@ -6,3 +6,16 @@
   outline: 2px solid var(--mantine-color-blue-8);
   outline-offset: 2px;
 }
+
+/*
+  Mantine's default anchor blue measures 4.14:1 against the alert's red
+  background — just under the 4.5:1 AA threshold. blue.9 reaches 5.03:1.
+
+  The underline is permanent rather than on hover: WCAG 1.4.1 asks that colour
+  not be the only means of conveying information, and inside a block of error
+  text a link needs to be identifiable without it.
+*/
+.summary a {
+  color: var(--mantine-color-blue-9);
+  text-decoration: underline;
+}

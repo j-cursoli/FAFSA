@@ -2,11 +2,15 @@ import type { ReactElement, ReactNode } from 'react'
 import { MantineProvider } from '@mantine/core'
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { theme } from '../theme'
+import { cssVariablesResolver, theme } from '../theme'
 
 function Providers({ children }: { children: ReactNode }) {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="light">
+    <MantineProvider
+      theme={theme}
+      defaultColorScheme="light"
+      cssVariablesResolver={cssVariablesResolver}
+    >
       {children}
     </MantineProvider>
   )
