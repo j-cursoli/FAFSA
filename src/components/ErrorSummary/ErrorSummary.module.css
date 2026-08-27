@@ -1,0 +1,8 @@
+.summary {
+  border: 1px solid var(--mantine-color-red-8);
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-8);
+  outline-offset: 2px;
+}
