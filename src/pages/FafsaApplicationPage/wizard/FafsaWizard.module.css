@@ -1,0 +1,35 @@
+.stepper {
+  margin-bottom: var(--mantine-spacing-xl);
+}
+
+.panel {
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-md);
+  padding: var(--mantine-spacing-lg);
+}
+
+.heading {
+  margin: 0 0 0.25rem;
+}
+
+/* Focus is moved here on every step change, so the ring has to be visible. */
+.heading:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-8);
+  outline-offset: 4px;
+}
+
+@media (max-width: 30rem) {
+  .panel {
+    padding: var(--mantine-spacing-md);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-inline: calc(-1 * var(--mantine-spacing-md));
+  }
+
+  /* Full-width buttons are easier to hit than a pair squeezed onto one row. */
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

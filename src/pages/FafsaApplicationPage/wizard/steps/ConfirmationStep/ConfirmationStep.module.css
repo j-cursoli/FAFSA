@@ -1,0 +1,17 @@
+.confirmation {
+  border: 1px solid var(--mantine-color-green-7);
+  border-left-width: 4px;
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-lg);
+  background-color: var(--mantine-color-green-0);
+}
+
+.heading {
+  margin: 0;
+}
+
+/* The focus ring must stay visible when focus is moved here programmatically. */
+.heading:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-8);
+  outline-offset: 4px;
+}

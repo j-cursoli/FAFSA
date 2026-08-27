@@ -107,6 +107,13 @@ export function parseIsoDate(value: string | null | undefined): Date | null {
   return isRealCalendarDate ? date : null
 }
 
+/** Renders a date the way <input type="date"> reads and writes it. */
+export function toIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
 /** Spells the month out; "05/15/2003" is read differently around the world. */
 export function formatDateOfBirth(value: string | null | undefined): string {
   const date = parseIsoDate(value)

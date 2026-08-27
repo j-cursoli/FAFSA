@@ -1,0 +1,4 @@
+.subheading {
+  font-size: var(--mantine-font-size-lg);
+  margin-bottom: var(--mantine-spacing-sm);
+}

@@ -6,4 +6,27 @@
 
 body {
   margin: 0;
+  background-color: var(--mantine-color-gray-0);
+}
+
+/*
+  A visible focus indicator is the whole basis of keyboard navigation, so it is
+  never removed — only replaced with one that meets the 3:1 non-text contrast
+  ratio WCAG 2.1 AA asks for.
+*/
+:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-8);
+  outline-offset: 2px;
+}
+
+/* Respect a user who has asked their system to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

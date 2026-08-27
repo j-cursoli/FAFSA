@@ -1,0 +1,61 @@
+.intro {
+  margin: 0;
+  color: var(--mantine-color-gray-8);
+}
+
+.section {
+  border: 1px solid var(--mantine-color-gray-4);
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-md);
+}
+
+.sectionTitle {
+  font-size: var(--mantine-font-size-lg);
+}
+
+.editLink {
+  font-size: var(--mantine-font-size-sm);
+}
+
+.list {
+  margin: var(--mantine-spacing-sm) 0 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 40%) 1fr;
+  gap: var(--mantine-spacing-sm);
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--mantine-color-gray-2);
+}
+
+.term {
+  margin: 0;
+  color: var(--mantine-color-gray-8);
+}
+
+.definition {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Stack the term above its value once two columns stop fitting at 320px. */
+@media (max-width: 30rem) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,15 @@
+.spouseSection {
+  border-left: 3px solid var(--mantine-color-blue-6);
+  padding-left: var(--mantine-spacing-md);
+}
+
+.subheading {
+  font-size: var(--mantine-font-size-lg);
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
+@media (max-width: 480px) {
+  .spouseSection {
+    padding-left: var(--mantine-spacing-sm);
+  }
+}

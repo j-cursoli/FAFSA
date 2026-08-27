@@ -5,6 +5,7 @@ import {
   formatDateOfBirth,
   normalizeSsn,
   parseIsoDate,
+  toIsoDate,
 } from './format'
 
 describe('calculateAge', () => {
@@ -111,6 +112,21 @@ describe('parseIsoDate', () => {
     expect(parseIsoDate('not a date')).toBeNull()
     expect(parseIsoDate('')).toBeNull()
     expect(parseIsoDate(null)).toBeNull()
+  })
+})
+
+describe('toIsoDate', () => {
+  it('renders a date in the form the date input expects', () => {
+    expect(toIsoDate(new Date(2003, 4, 15))).toBe('2003-05-15')
+  })
+
+  it('pads single-digit months and days', () => {
+    expect(toIsoDate(new Date(2003, 0, 5))).toBe('2003-01-05')
+  })
+
+  it('round-trips with parseIsoDate', () => {
+    const original = new Date(2012, 7, 26)
+    expect(parseIsoDate(toIsoDate(original))?.getTime()).toBe(original.getTime())
   })
 })
 

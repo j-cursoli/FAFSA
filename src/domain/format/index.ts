@@ -4,4 +4,5 @@ export {
   formatDateOfBirth,
   normalizeSsn,
   parseIsoDate,
+  toIsoDate,
 } from './format'
