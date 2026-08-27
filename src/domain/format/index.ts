@@ -1,1 +1,7 @@
-export { calculateAge, formatCurrency, formatDateOfBirth, normalizeSsn } from './format'
+export {
+  calculateAge,
+  formatCurrency,
+  formatDateOfBirth,
+  normalizeSsn,
+  parseIsoDate,
+} from './format'

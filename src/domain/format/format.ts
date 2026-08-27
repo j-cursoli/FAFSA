@@ -75,11 +75,45 @@ export function normalizeSsn(value: string): string {
   return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
 }
 
-/** Spells the month out; "05/15/2003" is read differently around the world. */
-export function formatDateOfBirth(value: Date | null | undefined): string {
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * Parses a YYYY-MM-DD string into a date in the viewer's own timezone.
+ *
+ * `new Date('2003-05-15')` parses as UTC midnight, which lands on 14 May for
+ * anyone west of Greenwich and would silently shift a birthday by a day. Naming
+ * the parts avoids that. Returns null for anything that is not a real calendar
+ * date, including 31 February.
+ */
+export function parseIsoDate(value: string | null | undefined): Date | null {
   if (!value) {
+    return null
+  }
+
+  const match = ISO_DATE_PATTERN.exec(value)
+
+  if (!match) {
+    return null
+  }
+
+  const [, year, month, day] = match
+  const date = new Date(Number(year), Number(month) - 1, Number(day))
+
+  const isRealCalendarDate =
+    date.getFullYear() === Number(year) &&
+    date.getMonth() === Number(month) - 1 &&
+    date.getDate() === Number(day)
+
+  return isRealCalendarDate ? date : null
+}
+
+/** Spells the month out; "05/15/2003" is read differently around the world. */
+export function formatDateOfBirth(value: string | null | undefined): string {
+  const date = parseIsoDate(value)
+
+  if (!date) {
     return EM_DASH
   }
 
-  return dateFormatter.format(value)
+  return dateFormatter.format(date)
 }

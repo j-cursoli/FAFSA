@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { calculateAge } from '../format'
+import { calculateAge, parseIsoDate } from '../format'
 import { US_STATE_CODES } from '../states'
 
 export const DEPENDENCY_STATUSES = ['dependent', 'independent'] as const
@@ -15,7 +15,8 @@ export interface FafsaFormValues {
   firstName: string
   lastName: string
   ssn: string
-  dateOfBirth: Date | null
+  /** Held as a YYYY-MM-DD string: what <input type="date"> reads and writes. */
+  dateOfBirth: string
   stateOfResidence: string
   dependencyStatus: DependencyStatus | ''
   maritalStatus: MaritalStatus | ''
@@ -42,7 +43,7 @@ export const defaultFafsaFormValues: FafsaFormValues = {
   firstName: '',
   lastName: '',
   ssn: '',
-  dateOfBirth: null,
+  dateOfBirth: '',
   stateOfResidence: '',
   dependencyStatus: '',
   maritalStatus: '',
@@ -71,7 +72,7 @@ const baseSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   ssn: z.string(),
-  dateOfBirth: z.date().nullable(),
+  dateOfBirth: z.string(),
   stateOfResidence: z.string(),
   dependencyStatus: z.union([z.enum(DEPENDENCY_STATUSES), z.literal('')]),
   maritalStatus: z.union([z.enum(MARITAL_STATUSES), z.literal('')]),
@@ -126,10 +127,14 @@ export const fafsaFormSchema = baseSchema.superRefine((values, ctx) => {
   }
 
   // Rule 1 — the student must be at least 14.
-  if (!values.dateOfBirth) {
+  const dateOfBirth = parseIsoDate(values.dateOfBirth)
+
+  if (isBlank(values.dateOfBirth)) {
     addIssue('dateOfBirth', 'Enter your date of birth.')
+  } else if (!dateOfBirth) {
+    addIssue('dateOfBirth', 'Enter your date of birth as a real calendar date, for example 05/15/2003.')
   } else {
-    const age = calculateAge(values.dateOfBirth)
+    const age = calculateAge(dateOfBirth)
 
     if (age < 0) {
       addIssue('dateOfBirth', 'Date of birth cannot be in the future. Check the year you entered.')

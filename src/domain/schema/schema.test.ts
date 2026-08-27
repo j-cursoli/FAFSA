@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { defaultFafsaFormValues, fafsaFormSchema, type FafsaFormValues } from './schema'
 
+/** Renders a date the way <input type="date"> holds it. */
+function toIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
 /** A date of birth that puts the applicant exactly `years` years old today. */
-function bornYearsAgo(years: number): Date {
+function bornYearsAgo(years: number): string {
   const today = new Date()
-  return new Date(today.getFullYear() - years, today.getMonth(), today.getDate())
+  return toIsoDate(new Date(today.getFullYear() - years, today.getMonth(), today.getDate()))
 }
 
 /**
@@ -114,10 +121,12 @@ describe('rule 1 — the student must be at least 14 years old', () => {
   })
 
   it('rejects an applicant one day short of 14', () => {
-    const almost = bornYearsAgo(14)
-    almost.setDate(almost.getDate() + 1)
+    const today = new Date()
+    const almost = new Date(today.getFullYear() - 14, today.getMonth(), today.getDate() + 1)
 
-    expect(failingFields({ ...validApplication, dateOfBirth: almost })).toContain('dateOfBirth')
+    expect(failingFields({ ...validApplication, dateOfBirth: toIsoDate(almost) })).toContain(
+      'dateOfBirth',
+    )
   })
 
   it('explains the minimum age and the age the entered date implies', () => {
@@ -131,14 +140,20 @@ describe('rule 1 — the student must be at least 14 years old', () => {
     const future = new Date()
     future.setFullYear(future.getFullYear() + 1)
 
-    expect(messageFor({ ...validApplication, dateOfBirth: future }, 'dateOfBirth')).toMatch(
-      /cannot be in the future/i,
-    )
+    expect(
+      messageFor({ ...validApplication, dateOfBirth: toIsoDate(future) }, 'dateOfBirth'),
+    ).toMatch(/cannot be in the future/i)
   })
 
   it('requires a date of birth at all', () => {
-    expect(messageFor({ ...validApplication, dateOfBirth: null }, 'dateOfBirth')).toMatch(
+    expect(messageFor({ ...validApplication, dateOfBirth: '' }, 'dateOfBirth')).toMatch(
       /enter your date of birth/i,
+    )
+  })
+
+  it('rejects a date that never happened', () => {
+    expect(messageFor({ ...validApplication, dateOfBirth: '2003-02-31' }, 'dateOfBirth')).toMatch(
+      /real calendar date/i,
     )
   })
 })

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { calculateAge, formatCurrency, formatDateOfBirth, normalizeSsn } from './format'
+import {
+  calculateAge,
+  formatCurrency,
+  formatDateOfBirth,
+  normalizeSsn,
+  parseIsoDate,
+} from './format'
 
 describe('calculateAge', () => {
   // Every case pins "today" explicitly so the suite cannot start failing on a
@@ -85,12 +91,36 @@ describe('normalizeSsn', () => {
   })
 })
 
+describe('parseIsoDate', () => {
+  it('reads the date in the viewer own timezone, not UTC', () => {
+    const parsed = parseIsoDate('2003-05-15')
+
+    // Parsing as UTC would land on 14 May for anyone west of Greenwich.
+    expect(parsed?.getFullYear()).toBe(2003)
+    expect(parsed?.getMonth()).toBe(4)
+    expect(parsed?.getDate()).toBe(15)
+  })
+
+  it('rejects dates that do not exist on the calendar', () => {
+    expect(parseIsoDate('2003-02-31')).toBeNull()
+    expect(parseIsoDate('2003-13-01')).toBeNull()
+  })
+
+  it('rejects input that is not a full date', () => {
+    expect(parseIsoDate('2003-05')).toBeNull()
+    expect(parseIsoDate('not a date')).toBeNull()
+    expect(parseIsoDate('')).toBeNull()
+    expect(parseIsoDate(null)).toBeNull()
+  })
+})
+
 describe('formatDateOfBirth', () => {
   it('spells the month out so the date is unambiguous when reviewed', () => {
-    expect(formatDateOfBirth(new Date(2003, 4, 15))).toBe('May 15, 2003')
+    expect(formatDateOfBirth('2003-05-15')).toBe('May 15, 2003')
   })
 
   it('returns an em dash when no date has been entered', () => {
+    expect(formatDateOfBirth('')).toBe('—')
     expect(formatDateOfBirth(null)).toBe('—')
   })
 })
