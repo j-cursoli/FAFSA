@@ -1,3 +1,8 @@
+// NOTE: jsdom is pinned to ^26 on purpose. Under jsdom 29, dom-accessibility-api
+// computes an empty accessible name for name-from-content elements, so every
+// getByRole({ name }) query against a button, link or heading silently fails to
+// match. Names derived from labels still work, which makes the breakage easy to
+// mistake for a component bug. Re-test the suite before raising this.
 import '@testing-library/jest-dom/vitest'
 import { toHaveNoViolations } from 'jest-axe'
 import { expect } from 'vitest'
