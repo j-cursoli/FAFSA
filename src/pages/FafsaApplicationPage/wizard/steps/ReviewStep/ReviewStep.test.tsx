@@ -99,10 +99,10 @@ describe('ReviewStep', () => {
 
     // Three controls all reading "Edit" would be indistinguishable to anyone
     // navigating by a list of buttons.
-    expect(screen.getByRole('button', { name: /edit student information/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /edit status/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit applicant/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit dependency/i })).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /edit household and finances/i }),
+      screen.getByRole('button', { name: /edit finances/i }),
     ).toBeInTheDocument()
   })
 
@@ -112,7 +112,7 @@ describe('ReviewStep', () => {
       defaultValues: completedApplication,
     })
 
-    await user.click(screen.getByRole('button', { name: /edit household and finances/i }))
+    await user.click(screen.getByRole('button', { name: /edit finances/i }))
 
     expect(onEdit).toHaveBeenCalledWith(2)
   })
@@ -120,7 +120,7 @@ describe('ReviewStep', () => {
   it('groups each set of answers under its own heading', () => {
     renderWithForm(<ReviewStep onEdit={() => {}} />, { defaultValues: completedApplication })
 
-    const section = screen.getByRole('region', { name: /student information/i })
+    const section = screen.getByRole('region', { name: /^applicant$/i })
     expect(within(section).getByText('First name')).toBeInTheDocument()
   })
 })

@@ -14,7 +14,7 @@ async function expectNoViolations(container: HTMLElement) {
   expect(await axe(container)).toHaveNoViolations()
 }
 
-async function completeStudentInformation(user: User) {
+async function completeApplicantStep(user: User) {
   await user.type(screen.getByRole('textbox', { name: /first name/i }), 'Jane')
   await user.type(screen.getByRole('textbox', { name: /last name/i }), 'Smith')
   await user.type(screen.getByRole('textbox', { name: /social security number/i }), '123456789')
@@ -54,7 +54,7 @@ describe('FafsaApplicationPage', () => {
 })
 
 describe('accessibility of each step', () => {
-  it('has no violations on the student information step', async () => {
+  it('has no violations on the applicant step', async () => {
     const { container } = renderWithProviders(<FafsaApplicationPage />)
 
     await expectNoViolations(container)
@@ -71,10 +71,10 @@ describe('accessibility of each step', () => {
     await expectNoViolations(container)
   })
 
-  it('has no violations on the status step', async () => {
+  it('has no violations on the dependency step', async () => {
     const { container, user } = renderWithProviders(<FafsaApplicationPage />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await screen.findByRole('radiogroup', { name: /dependency status/i })
 
     await expectNoViolations(container)
@@ -83,17 +83,17 @@ describe('accessibility of each step', () => {
   it('has no violations once the conditional spouse fields appear', async () => {
     const { container, user } = renderWithProviders(<FafsaApplicationPage />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(await screen.findByRole('radio', { name: 'Married' }))
     await screen.findByRole('textbox', { name: /spouse's first name/i })
 
     await expectNoViolations(container)
   })
 
-  it('has no violations on the household and finances step', async () => {
+  it('has no violations on the finances step', async () => {
     const { container, user } = renderWithProviders(<FafsaApplicationPage />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(await screen.findByRole('radio', { name: 'Dependent' }))
     await user.click(screen.getByRole('radio', { name: 'Single' }))
     await user.click(screen.getByRole('button', { name: /next/i }))
@@ -105,7 +105,7 @@ describe('accessibility of each step', () => {
   it('has no violations on the review step', async () => {
     const { container, user } = renderWithProviders(<FafsaApplicationPage />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(await screen.findByRole('radio', { name: 'Dependent' }))
     await user.click(screen.getByRole('radio', { name: 'Single' }))
     await user.click(screen.getByRole('button', { name: /next/i }))
@@ -123,7 +123,7 @@ describe('accessibility of each step', () => {
   it('has no violations on the confirmation', async () => {
     const { container, user } = renderWithProviders(<FafsaApplicationPage />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(await screen.findByRole('radio', { name: 'Dependent' }))
     await user.click(screen.getByRole('radio', { name: 'Single' }))
     await user.click(screen.getByRole('button', { name: /next/i }))

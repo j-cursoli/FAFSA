@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Box, Button, Group, Stepper, Text, Title } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
 import { ErrorSummary, type ErrorSummaryEntry } from '../../../components/ErrorSummary'
@@ -14,7 +15,13 @@ import { HouseholdFinanceStep } from './steps/HouseholdFinanceStep'
 import { ReviewStep } from './steps/ReviewStep'
 import { StatusStep } from './steps/StatusStep'
 import { StudentInfoStep } from './steps/StudentInfoStep'
-import { FIELD_LABELS, REVIEW_STEP_INDEX, WIZARD_STEPS, stepIndexForField } from './steps'
+import {
+  FIELD_LABELS,
+  PROGRESS_STEPS,
+  REVIEW_STEP_INDEX,
+  WIZARD_STEPS,
+  stepIndexForField,
+} from './steps'
 import { clearDraft, initialValuesFromDraft, useFormDraft } from './useFormDraft'
 import { useFocusField } from './useFocusField'
 import styles from './FafsaWizard.module.css'
@@ -27,10 +34,18 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [submittedName, setSubmittedName] = useState<string | null>(null)
   const [focusSummaryRequest, setFocusSummaryRequest] = useState(0)
+  const submitRequested = useRef(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
   const shouldFocusHeading = useRef(false)
   const focusField = useFocusField()
+
+  // Measured, not guessed: the four steps stay on one row down to 665px and
+  // wrap into a ragged two-row block at 660px. Switching to vertical at 680px
+  // clears that band with a little margin, so the indicator is only ever one
+  // tidy row or a clean stack — never half-wrapped. Stacking also gives each
+  // step a full-width touch target.
+  const isNarrowViewport = useMediaQuery('(max-width: 680px)', false)
 
   const methods = useForm<FafsaFormValues>({
     // Restores anything the user had already typed before a refresh — minus
@@ -110,6 +125,25 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
     focusField(fieldName)
   }
 
+  /**
+   * Only a press of the submit button files the application.
+   *
+   * Defence in depth against the class of bug described on the buttons below:
+   * a submit event that nobody asked for gets dropped rather than quietly
+   * filing someone's FAFSA. React's synthetic handler for the clicked node
+   * runs before the browser performs the click's default action, so a stray
+   * submission arrives with this flag still false.
+   */
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!submitRequested.current) {
+      event.preventDefault()
+      return
+    }
+
+    submitRequested.current = false
+    void submit(event)
+  }
+
   const submit = handleSubmit(
     (values) => {
       // The application is submitted; keeping a copy of it in storage serves
@@ -140,15 +174,20 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
         active={stepIndex}
         onStepClick={goToStep}
         allowNextStepsSelect={false}
+        orientation={isNarrowViewport ? 'vertical' : 'horizontal'}
         size="sm"
         className={styles.stepper}
       >
-        {WIZARD_STEPS.map((wizardStep) => (
-          <Stepper.Step key={wizardStep.id} label={wizardStep.title} />
+        {PROGRESS_STEPS.map((wizardStep) => (
+          <Stepper.Step
+            key={wizardStep.id}
+            label={wizardStep.title}
+            description={wizardStep.description}
+          />
         ))}
       </Stepper>
 
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={handleFormSubmit} noValidate>
         <Box component="section" aria-labelledby="wizard-step-heading" className={styles.panel}>
           <Title
             order={2}
@@ -166,14 +205,19 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
             hidden announcement would say the same thing twice.
           */}
           <Text size="sm" c="dimmed" role="status" aria-live="polite">
-            {`Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${step.title}`}
+            {`Step ${stepIndex + 1} of ${PROGRESS_STEPS.length}: ${step.title}`}
           </Text>
 
-          {!isReviewStep && (
-            <Text size="sm" c="dimmed" mb="md">
-              All fields are required unless marked optional.
-            </Text>
-          )}
+          {/*
+            Arriving at a screen headed "Review" that already lists every
+            answer is a natural place to wonder whether the application has
+            gone in, so the review step says plainly that it has not.
+          */}
+          <Text size="sm" c="dimmed" mb="md">
+            {isReviewStep
+              ? 'Nothing is submitted until you select Submit application.'
+              : 'All fields are required unless marked optional.'}
+          </Text>
 
           <ErrorSummary
             ref={summaryRef}
@@ -199,10 +243,33 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
             Back
           </Button>
 
+          {/*
+            The keys are load-bearing, not decoration.
+
+            Without them React reuses one DOM node for both buttons and merely
+            changes its type. Clicking "Next" on the last question step then
+            runs handleNext, React re-renders that same node into the
+            type="submit" button, and the browser carries out the click's
+            default action against it — submitting the application. The review
+            step rendered for about four milliseconds before the confirmation
+            replaced it, so the user never saw the answers they were supposed
+            to be checking.
+
+            Distinct keys make React unmount one button and mount the other, so
+            the clicked node is gone by the time the default action would run.
+          */}
           {isReviewStep ? (
-            <Button type="submit">Submit application</Button>
+            <Button
+              key="submit-application"
+              type="submit"
+              onClick={() => {
+                submitRequested.current = true
+              }}
+            >
+              Submit application
+            </Button>
           ) : (
-            <Button type="button" onClick={handleNext}>
+            <Button key="next-step" type="button" onClick={handleNext}>
               Next
             </Button>
           )}

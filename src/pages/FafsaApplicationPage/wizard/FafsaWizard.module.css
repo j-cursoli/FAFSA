@@ -18,6 +18,13 @@
   outline-offset: 4px;
 }
 
+@media (max-width: 680px) {
+  /* The vertical stepper is taller, so it needs less air beneath it. */
+  .stepper {
+    margin-bottom: var(--mantine-spacing-lg);
+  }
+}
+
 @media (max-width: 30rem) {
   .panel {
     padding: var(--mantine-spacing-md);

@@ -9,7 +9,7 @@ function stepHeading(name: RegExp) {
   return screen.getByRole('heading', { level: 2, name })
 }
 
-async function completeStudentInformation(user: User) {
+async function completeApplicantStep(user: User) {
   await user.type(screen.getByRole('textbox', { name: /first name/i }), 'Jane')
   await user.type(screen.getByRole('textbox', { name: /last name/i }), 'Smith')
   await user.type(screen.getByRole('textbox', { name: /social security number/i }), '123456789')
@@ -21,13 +21,13 @@ async function completeStudentInformation(user: User) {
   await user.click(screen.getByRole('button', { name: /next/i }))
 }
 
-async function completeStatus(user: User) {
+async function completeDependency(user: User) {
   await user.click(screen.getByRole('radio', { name: 'Dependent' }))
   await user.click(screen.getByRole('radio', { name: 'Single' }))
   await user.click(screen.getByRole('button', { name: /next/i }))
 }
 
-async function completeHouseholdAndFinances(user: User) {
+async function completeFinances(user: User) {
   await user.type(screen.getByRole('textbox', { name: /number in household/i }), '4')
   await user.type(screen.getByRole('textbox', { name: /number in college/i }), '1')
   await user.type(screen.getByRole('textbox', { name: /your income/i }), '5000')
@@ -39,8 +39,8 @@ describe('moving through the wizard', () => {
   it('starts the user on the first step', () => {
     renderWithProviders(<FafsaWizard />)
 
-    expect(stepHeading(/student information/i)).toBeInTheDocument()
-    expect(screen.getByText('Step 1 of 4: Student information')).toBeInTheDocument()
+    expect(stepHeading(/^applicant$/i)).toBeInTheDocument()
+    expect(screen.getByText('Step 1 of 4: Applicant')).toBeInTheDocument()
   })
 
   it('cannot go back from the first step', () => {
@@ -54,23 +54,23 @@ describe('moving through the wizard', () => {
 
     await user.click(screen.getByRole('button', { name: /next/i }))
 
-    expect(stepHeading(/student information/i)).toBeInTheDocument()
+    expect(stepHeading(/^applicant$/i)).toBeInTheDocument()
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 
   it('advances once the step is complete', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
 
-    expect(await screen.findByRole('heading', { level: 2, name: /^status$/i })).toBeInTheDocument()
-    expect(screen.getByText('Step 2 of 4: Status')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: /^dependency$/i })).toBeInTheDocument()
+    expect(screen.getByText('Step 2 of 4: Dependency')).toBeInTheDocument()
   })
 
   it('remembers what the user typed when they go back', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(screen.getByRole('button', { name: /back/i }))
 
     expect(await screen.findByRole('textbox', { name: /first name/i })).toHaveValue('Jane')
@@ -84,9 +84,68 @@ describe('moving through the wizard', () => {
 
     // Income lives two steps away; the first step must not refuse to advance
     // because of a field the user has not been shown yet.
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('leaving the last question step', () => {
+  it('stops at the review instead of filing the application', async () => {
+    const onSubmit = vi.fn()
+    const { user } = renderWithProviders(<FafsaWizard onSubmit={onSubmit} />)
+
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
+
+    // Note: this asserts the correct behaviour but would NOT have caught the
+    // bug it was written for. That bug needed the browser to resolve a click's
+    // default action after React had re-rendered the clicked node into a
+    // submit button; jsdom resolves the default action at dispatch time, so it
+    // never reproduced. It was found and confirmed fixed in a real browser.
+    expect(await screen.findByRole('heading', { level: 2, name: /^review$/i })).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(screen.queryByRole('heading', { name: /application submitted/i })).not.toBeInTheDocument()
+  })
+
+  it('leaves the user in control of when the application is filed', async () => {
+    const onSubmit = vi.fn()
+    const { user } = renderWithProviders(<FafsaWizard onSubmit={onSubmit} />)
+
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
+    await screen.findByRole('button', { name: /submit application/i })
+
+    expect(onSubmit).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /submit application/i }))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('the step indicator', () => {
+  // Asserting the step control's accessible name covers both what a sighted
+  // user reads and what a screen reader announces for that control.
+  it.each([
+    ['Applicant', 'Identification'],
+    ['Dependency', 'Marital status'],
+    ['Finances', 'Household Income'],
+    ['Review', 'Check answers'],
+  ])('offers a %s step described as "%s"', (title, description) => {
+    renderWithProviders(<FafsaWizard />)
+
+    const step = screen.getByRole('button', { name: new RegExp(`${title}.*${description}`, 'i') })
+
+    expect(step).toBeInTheDocument()
+  })
+
+  it('lets the user see the whole journey, review included', () => {
+    renderWithProviders(<FafsaWizard />)
+
+    expect(screen.getAllByRole('button', { name: /applicant|dependency|finances|review/i })).toHaveLength(4)
   })
 })
 
@@ -155,7 +214,7 @@ describe('reporting problems', () => {
     await user.click(screen.getByRole('button', { name: /next/i }))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
 
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
   })
@@ -165,10 +224,10 @@ describe('focus and announcements', () => {
   it('moves focus to the new step heading so the user is not stranded', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
 
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 2, name: /^status$/i })).toHaveFocus(),
+      expect(screen.getByRole('heading', { level: 2, name: /^dependency$/i })).toHaveFocus(),
     )
   })
 
@@ -182,22 +241,47 @@ describe('focus and announcements', () => {
 
   it('announces which step the user is on', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
 
-    const announcement = await screen.findByText('Step 2 of 4: Status')
+    const announcement = await screen.findByText('Step 2 of 4: Dependency')
     expect(announcement).toHaveAttribute('aria-live', 'polite')
   })
 })
 
 describe('reviewing and submitting', () => {
+  it('reassures the user that nothing has been submitted yet', async () => {
+    const { user } = renderWithProviders(<FafsaWizard />)
+
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
+
+    // Landing on a screen headed "Review" with a Submit button is a natural
+    // place to wonder whether the application has already gone in.
+    expect(
+      await screen.findByText(/nothing is submitted until you select submit application/i),
+    ).toBeInTheDocument()
+  })
+
+  it('counts the review as the final step', async () => {
+    const { user } = renderWithProviders(<FafsaWizard />)
+
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
+    await screen.findByRole('heading', { level: 2, name: /^review$/i })
+
+    expect(screen.getByText('Step 4 of 4: Review')).toBeInTheDocument()
+  })
+
   it('shows the answers back to the user before they submit', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
 
-    expect(await screen.findByRole('heading', { name: /review and submit/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: /^review$/i })).toBeInTheDocument()
     expect(screen.getByText('Jane')).toBeInTheDocument()
     expect(screen.getByText('123-45-6789')).toBeInTheDocument()
     expect(screen.getByText('May 15, 2003')).toBeInTheDocument()
@@ -208,11 +292,11 @@ describe('reviewing and submitting', () => {
   it('lets the user jump back to a section from the review', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
 
-    await user.click(await screen.findByRole('button', { name: /edit student information/i }))
+    await user.click(await screen.findByRole('button', { name: /edit applicant/i }))
 
     expect(await screen.findByRole('textbox', { name: /first name/i })).toHaveValue('Jane')
   })
@@ -221,9 +305,9 @@ describe('reviewing and submitting', () => {
     const onSubmit = vi.fn()
     const { user } = renderWithProviders(<FafsaWizard onSubmit={onSubmit} />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
     await user.click(await screen.findByRole('button', { name: /submit application/i }))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
@@ -247,9 +331,9 @@ describe('reviewing and submitting', () => {
   it('confirms the submission and greets the applicant by name', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
     await user.click(await screen.findByRole('button', { name: /submit application/i }))
 
     expect(await screen.findByRole('heading', { name: /application submitted/i })).toBeInTheDocument()
@@ -259,9 +343,9 @@ describe('reviewing and submitting', () => {
   it('moves focus to the confirmation so the change is not silent', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
     await user.click(await screen.findByRole('button', { name: /submit application/i }))
 
     await waitFor(() =>
@@ -272,14 +356,14 @@ describe('reviewing and submitting', () => {
   it('gives the user a clean form when they start another application', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
     await user.click(await screen.findByRole('button', { name: /submit application/i }))
     await user.click(await screen.findByRole('button', { name: /start another application/i }))
 
     expect(await screen.findByRole('textbox', { name: /first name/i })).toHaveValue('')
-    expect(screen.getByText('Step 1 of 4: Student information')).toBeInTheDocument()
+    expect(screen.getByText('Step 1 of 4: Applicant')).toBeInTheDocument()
   })
 })
 
@@ -320,9 +404,9 @@ describe('surviving a page refresh', () => {
   it('forgets the draft once the application is submitted', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
-    await completeStatus(user)
-    await completeHouseholdAndFinances(user)
+    await completeApplicantStep(user)
+    await completeDependency(user)
+    await completeFinances(user)
     await user.click(await screen.findByRole('button', { name: /submit application/i }))
     await screen.findByRole('heading', { name: /application submitted/i })
 
@@ -334,7 +418,7 @@ describe('the married and independent path', () => {
   it('requires spouse details before letting a married applicant advance', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(screen.getByRole('radio', { name: 'Independent' }))
     await user.click(screen.getByRole('radio', { name: 'Married' }))
     await user.click(screen.getByRole('button', { name: /next/i }))
@@ -346,7 +430,7 @@ describe('the married and independent path', () => {
   it('does not ask an independent applicant for parent income', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(screen.getByRole('radio', { name: 'Independent' }))
     await user.click(screen.getByRole('radio', { name: 'Single' }))
     await user.click(screen.getByRole('button', { name: /next/i }))
@@ -359,7 +443,7 @@ describe('the married and independent path', () => {
     const onSubmit = vi.fn()
     const { user } = renderWithProviders(<FafsaWizard onSubmit={onSubmit} />)
 
-    await completeStudentInformation(user)
+    await completeApplicantStep(user)
     await user.click(screen.getByRole('radio', { name: 'Independent' }))
     await user.click(screen.getByRole('radio', { name: 'Married' }))
     await user.type(screen.getByRole('textbox', { name: /spouse's first name/i }), 'Alex')

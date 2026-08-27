@@ -128,14 +128,14 @@ export function ReviewStep({ onEdit }: ReviewStepProps) {
       </p>
 
       <ReviewSection
-        title="Student information"
+        title="Applicant"
         stepIndex={0}
         entries={studentEntries}
         onEdit={onEdit}
       />
-      <ReviewSection title="Status" stepIndex={1} entries={statusEntries} onEdit={onEdit} />
+      <ReviewSection title="Dependency" stepIndex={1} entries={statusEntries} onEdit={onEdit} />
       <ReviewSection
-        title="Household and finances"
+        title="Finances"
         stepIndex={2}
         entries={financeEntries}
         onEdit={onEdit}

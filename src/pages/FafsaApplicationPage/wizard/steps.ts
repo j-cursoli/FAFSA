@@ -9,6 +9,12 @@ export interface WizardStep {
   readonly id: string
   readonly title: string
   /**
+   * A few words naming what the step asks for. The titles are deliberately
+   * terse so the stepper stays scannable; these say what is actually behind
+   * each one, so a user can tell where an answer belongs before they get there.
+   */
+  readonly description: string
+  /**
    * The fields this step is responsible for, given the answers so far.
    *
    * Conditional fields are absent until they apply, so "Next" never validates a
@@ -20,21 +26,24 @@ export interface WizardStep {
 
 export const WIZARD_STEPS: readonly WizardStep[] = [
   {
-    id: 'student-information',
-    title: 'Student information',
+    id: 'applicant',
+    title: 'Applicant',
+    description: 'Identification',
     fieldsFor: () => ['firstName', 'lastName', 'ssn', 'dateOfBirth', 'stateOfResidence'],
   },
   {
-    id: 'status',
-    title: 'Status',
+    id: 'dependency',
+    title: 'Dependency',
+    description: 'Marital status',
     fieldsFor: (values) =>
       requiresSpouseInformation(values)
         ? ['dependencyStatus', 'maritalStatus', 'spouseFirstName', 'spouseLastName', 'spouseSsn']
         : ['dependencyStatus', 'maritalStatus'],
   },
   {
-    id: 'household-and-finances',
-    title: 'Household and finances',
+    id: 'finances',
+    title: 'Finances',
+    description: 'Household Income',
     fieldsFor: (values) =>
       requiresParentIncome(values)
         ? ['numberInHousehold', 'numberInCollege', 'studentIncome', 'parentIncome']
@@ -42,12 +51,16 @@ export const WIZARD_STEPS: readonly WizardStep[] = [
   },
   {
     id: 'review',
-    title: 'Review and submit',
+    title: 'Review',
+    description: 'Check answers',
     fieldsFor: () => [],
   },
 ]
 
 export const REVIEW_STEP_INDEX = WIZARD_STEPS.length - 1
+
+/** The steps drawn in the progress indicator — all of them, review included. */
+export const PROGRESS_STEPS = WIZARD_STEPS
 
 /**
  * Field labels for the error summary, which has to name a field the user has
