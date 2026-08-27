@@ -283,6 +283,53 @@ describe('reviewing and submitting', () => {
   })
 })
 
+describe('surviving a page refresh', () => {
+  it('brings back the answers the user had already typed', async () => {
+    const { user, unmount } = renderWithProviders(<FafsaWizard />)
+
+    await user.type(screen.getByRole('textbox', { name: /first name/i }), 'Jane')
+    await user.type(screen.getByRole('textbox', { name: /last name/i }), 'Smith')
+    await waitFor(() => expect(window.sessionStorage.length).toBeGreaterThan(0))
+
+    // Unmount and mount again: the same thing the user's browser does on a
+    // refresh, from the form's point of view.
+    unmount()
+    renderWithProviders(<FafsaWizard />)
+
+    expect(screen.getByRole('textbox', { name: /first name/i })).toHaveValue('Jane')
+    expect(screen.getByRole('textbox', { name: /last name/i })).toHaveValue('Smith')
+  })
+
+  it('makes the user type their Social Security number again', async () => {
+    const { user, unmount } = renderWithProviders(<FafsaWizard />)
+
+    await user.type(screen.getByRole('textbox', { name: /first name/i }), 'Jane')
+    await user.type(screen.getByRole('textbox', { name: /social security number/i }), '123456789')
+    await waitFor(() => expect(window.sessionStorage.length).toBeGreaterThan(0))
+
+    unmount()
+    renderWithProviders(<FafsaWizard />)
+
+    // Deliberate: a Social Security number is not written to storage, so it
+    // cannot come back. Re-typing nine digits is the cost of not leaving a
+    // government identifier sitting in the browser.
+    expect(screen.getByRole('textbox', { name: /first name/i })).toHaveValue('Jane')
+    expect(screen.getByRole('textbox', { name: /social security number/i })).toHaveValue('')
+  })
+
+  it('forgets the draft once the application is submitted', async () => {
+    const { user } = renderWithProviders(<FafsaWizard />)
+
+    await completeStudentInformation(user)
+    await completeStatus(user)
+    await completeHouseholdAndFinances(user)
+    await user.click(await screen.findByRole('button', { name: /submit application/i }))
+    await screen.findByRole('heading', { name: /application submitted/i })
+
+    await waitFor(() => expect(window.sessionStorage.length).toBe(0))
+  })
+})
+
 describe('the married and independent path', () => {
   it('requires spouse details before letting a married applicant advance', async () => {
     const { user } = renderWithProviders(<FafsaWizard />)

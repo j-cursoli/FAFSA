@@ -1,4 +1,5 @@
 import { Text, Title } from '@mantine/core'
+import { ErrorBoundary } from '../../components/ErrorBoundary'
 import { FafsaWizard } from './wizard'
 import styles from './FafsaApplicationPage.module.css'
 
@@ -16,7 +17,9 @@ export function FafsaApplicationPage() {
         </Text>
       </header>
 
-      <FafsaWizard />
+      <ErrorBoundary>
+        <FafsaWizard />
+      </ErrorBoundary>
     </main>
   )
 }

@@ -15,6 +15,7 @@ import { ReviewStep } from './steps/ReviewStep'
 import { StatusStep } from './steps/StatusStep'
 import { StudentInfoStep } from './steps/StudentInfoStep'
 import { FIELD_LABELS, REVIEW_STEP_INDEX, WIZARD_STEPS, stepIndexForField } from './steps'
+import { clearDraft, initialValuesFromDraft, useFormDraft } from './useFormDraft'
 import { useFocusField } from './useFocusField'
 import styles from './FafsaWizard.module.css'
 
@@ -32,7 +33,9 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
   const focusField = useFocusField()
 
   const methods = useForm<FafsaFormValues>({
-    defaultValues: defaultFafsaFormValues,
+    // Restores anything the user had already typed before a refresh — minus
+    // the Social Security numbers, which are never written to storage.
+    defaultValues: initialValuesFromDraft(),
     resolver: zodResolver(fafsaFormSchema),
     // Validate a field the first time the user leaves it, then live on every
     // keystroke. Validating before they have finished typing scolds someone
@@ -40,7 +43,9 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
     mode: 'onTouched',
   })
 
-  const { formState, getValues, handleSubmit, reset, trigger } = methods
+  const { control, formState, getValues, handleSubmit, reset, trigger } = methods
+
+  useFormDraft(control)
   const step = WIZARD_STEPS[stepIndex]
   const isReviewStep = stepIndex === REVIEW_STEP_INDEX
 
@@ -107,6 +112,9 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
 
   const submit = handleSubmit(
     (values) => {
+      // The application is submitted; keeping a copy of it in storage serves
+      // no one and only widens the window where personal data sits around.
+      clearDraft()
       setSubmittedName(values.firstName)
       onSubmit?.(values)
     },
@@ -116,6 +124,7 @@ export function FafsaWizard({ onSubmit }: FafsaWizardProps) {
   )
 
   const handleStartAnother = () => {
+    clearDraft()
     reset(defaultFafsaFormValues)
     setSubmittedName(null)
     setStepIndex(0)

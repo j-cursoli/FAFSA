@@ -5,9 +5,16 @@
 // mistake for a component bug. Re-test the suite before raising this.
 import '@testing-library/jest-dom/vitest'
 import { toHaveNoViolations } from 'jest-axe'
-import { expect } from 'vitest'
+import { afterEach, expect } from 'vitest'
 
 expect.extend(toHaveNoViolations)
+
+// The form saves a draft to sessionStorage as the user types. Without this,
+// one test's answers pre-fill the next test's form and failures appear in
+// tests that have nothing to do with persistence.
+afterEach(() => {
+  window.sessionStorage.clear()
+})
 
 // Mantine reads these browser APIs on mount; jsdom does not implement them.
 // Without the stubs every Mantine component throws before a test can run.
