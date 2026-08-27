@@ -1,169 +1,147 @@
-# FAFSA
+# FAFSA Application Form
 
-FAFSA — Free Application for Federal Student Aid.
+An accessible, validated web form for entering FAFSA (Free Application for Federal
+Student Aid) data. Four guided steps, validation as you go, a review before
+submitting, and a clear summary of anything that needs fixing.
 
-A web form for collecting FAFSA application data, built with React 19,
-TypeScript, Vite, and Mantine. Validation is schema-driven (Zod) and wired into
-the form through react-hook-form.
+Built with React 19, TypeScript, Vite, and Mantine. Validation is schema-driven with
+Zod and wired into the form through react-hook-form.
 
-**Status:** the domain layer (validation schema, formatting, state list) and the
-controlled input components are in place and tested. `FafsaApplicationPage` is
-still a heading-only stub — the multi-step form UI is the work in progress.
+The reasoning behind every design choice is in **[DECISIONS.md](./DECISIONS.md)**.
 
-## Tech stack
+## Requirements
 
-| Concern    | Choice                                       |
-| ---------- | -------------------------------------------- |
-| UI         | React 19 + Mantine 9                         |
-| Language   | TypeScript 5.7                               |
-| Build/dev  | Vite 7                                       |
-| Forms      | react-hook-form + `@hookform/resolvers`      |
-| Validation | Zod 4                                        |
-| Tests      | Vitest 4 + Testing Library + jest-axe (a11y) |
-
-## Prerequisites
-
-- **Node.js >= 20** (enforced via `engines`; developed on Node 22)
+- **Node.js 20 or newer** (developed on 22)
 - npm 10+ (ships with Node 20/22)
 
-## Getting started
+## Install and run
 
 ```bash
-git clone <repo-url>
-cd FAFSA
 npm install
 npm run dev
 ```
 
-`npm run dev` starts the Vite dev server with hot module replacement at
-**http://localhost:5173**. Vite picks the next free port if 5173 is taken — check
-the URL it prints. To expose the server on your local network, run
-`npm run dev -- --host`.
-
-## Running the project
-
-### Development
+The dev server prints its URL — **http://localhost:5173** unless that port is taken.
 
 ```bash
-npm run dev        # dev server with HMR at http://localhost:5173
-npm start          # alias for `npm run dev`
+npm test           # run the full test suite once
+npm run build      # type-check and bundle to dist/
+npm run preview    # serve the production build
 ```
 
-### Production build
+## All scripts
+
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Dev server with hot module replacement |
+| `npm start` | Alias for `npm run dev` |
+| `npm test` | Run the suite once (CI mode) |
+| `npm run test:watch` | Re-run affected tests on change |
+| `npm run test:coverage` | Coverage table plus an HTML report in `coverage/` |
+| `npm run build` | `tsc -b` then a production bundle in `dist/` |
+| `npm run preview` | Serve the built bundle at http://localhost:4173 |
+| `npm run typecheck` | Types only, no bundling |
+| `npm run check` | typecheck + tests + build — the full gate |
+| `npm run clean` | Remove `dist/`, `coverage/`, and `*.tsbuildinfo` |
+
+Arguments pass straight through to Vitest:
 
 ```bash
-npm run build      # type-checks with `tsc -b`, then bundles to dist/
-npm run preview    # serves the built dist/ at http://localhost:4173
+npm test -- src/domain/schema           # only files under this path
+npm test -- -t "at least 14 years old"  # only tests whose name matches
 ```
 
-`npm run build` fails on any TypeScript error, so a green build also means a
-clean type-check. Output lands in `dist/` (git-ignored) and is a static bundle —
-deploy it to any static host.
+## Trying it out
 
-## Running tests
+The form walks through four steps — student information, status, household and
+finances, review — then confirms. To exercise the validation, the sample data from
+the assignment maps onto the fields like this.
 
-The suite runs on Vitest in a jsdom environment. No server needs to be running.
+**A valid application** (advances cleanly to the review step):
+
+| Field | Value |
+| --- | --- |
+| First / last name | Jane / Smith |
+| Social Security number | `123456789` — hyphens are added as you type |
+| Date of birth | `2003-05-15` |
+| State of legal residence | California |
+| Dependency / marital status | Dependent / Single |
+| Number in household / college | 4 / 1 |
+| Your income / parent income | 5000 / 65000 |
+
+**An application that breaks every rule.** Enter SSN `invalid`, a date of birth of
+`2015-01-01`, leave the state unselected, choose Dependent and Married, leave the
+spouse fields and parent income empty, and enter a household of 2 with 5 in college
+and an income of `-1000`. Each step refuses to advance and lists everything wrong at
+the top; every entry in that summary is a link that jumps focus to its field.
+
+**Keyboard only.** The whole form can be completed without a mouse — Tab between
+fields, arrow keys within the Dependent/Independent and Single/Married groups, Enter
+or Space to activate buttons and summary links.
+
+## Testing
+
+196 tests run on Vitest in jsdom. Every one is black-box: they find elements by
+accessible role, label, and visible text, and drive them with `user-event`. None
+assert on class names, test ids, or internal state.
 
 ```bash
-npm test           # run the whole suite once (CI mode)
-npm run test:watch # re-run affected tests on file change
-npm run test:coverage
-```
-
-### Targeting specific tests
-
-Extra arguments are passed straight through to Vitest:
-
-```bash
-npm test -- src/domain/schema          # only files matching this path
-npm test -- -t "rejects an invalid SSN" # only tests whose name matches
-npm run test:watch -- src/domain/format
-```
-
-### Coverage
-
-`npm run test:coverage` prints a per-file table and writes an HTML report to
-`coverage/` (git-ignored). Open `coverage/index.html` to browse it:
-
-```bash
+npm test
 npm run test:coverage && open coverage/index.html
 ```
 
-Coverage uses the V8 provider over `src/**/*.{ts,tsx}`, excluding `src/main.tsx`,
-`src/test/**`, and barrel `index.ts` files. Configuration lives in
-`vite.config.ts`.
-
-### Test layout and helpers
-
-Tests sit next to the code they cover as `*.test.ts` / `*.test.tsx`:
-
-- `src/domain/format/format.test.ts` — date parsing and age calculation
-- `src/domain/schema/schema.test.ts` — Zod validation rules
-- `src/domain/states/states.test.ts` — US state list and lookups
-- `src/pages/FafsaApplicationPage/FafsaApplicationPage.test.tsx` — page rendering
-  and accessibility
-
-Two shared files support them:
-
-- `src/test/setup.ts` — loaded before every test file. Registers
-  `@testing-library/jest-dom` and `jest-axe` matchers, and stubs the browser APIs
-  jsdom lacks but Mantine expects (`matchMedia`, `ResizeObserver`,
-  `scrollIntoView`).
-- `src/test/renderWithProviders.tsx` — renders a component inside
-  `MantineProvider` with the app theme. Use it instead of Testing Library's bare
-  `render` for anything that touches Mantine components.
-
-Accessibility assertions use `jest-axe`, so a rendered view that introduces an
-a11y violation will fail its test.
-
-## Other scripts
-
-```bash
-npm run typecheck  # tsc -b --noEmit, no bundling
-npm run check      # typecheck + tests + build — the full pre-push gate
-npm run clean      # remove dist/, coverage/, and *.tsbuildinfo
-```
+Accessibility is asserted, not assumed — `jest-axe` scans every step, the error
+state, the revealed conditional fields, the review, and the confirmation. Note that
+jsdom cannot check colour contrast (it has no layout engine); that was verified
+separately with axe-core in Chrome. See
+[Accessibility testing](./DECISIONS.md#accessibility-testing) for what was and was
+not covered.
 
 ## Project structure
 
+Every unit — page, component, wizard step, domain module — lives in its own folder
+with its source, its test, and its CSS module together, re-exported through an
+`index.ts`.
+
 ```
 src/
-  main.tsx                    # entry point: mounts <App> into #root
-  App.tsx                     # MantineProvider + page composition
-  theme.ts                    # Mantine theme overrides
-  styles/global.css           # global styles
-  domain/                     # framework-free logic, each with its own tests
-    format/                   # date parsing, age calculation
-    schema/                   # Zod schema, form value types, defaults
-    states/                   # US state codes and names
-  components/                 # react-hook-form-controlled Mantine inputs
-    ControlledCurrencyInput/
-    ControlledDateInput/
-    ControlledNativeSelect/
-    ControlledNumberInput/
-    ControlledRadioGroup/
-    ControlledSsnInput/
-    ControlledTextInput/
+  App.tsx  main.tsx  theme.ts       # entry, providers, Mantine theme overrides
+  styles/global.css
+  domain/                           # framework-free logic
+    schema/                         # Zod schema — the single source of validation
+    format/                         # age, currency, SSN and date formatting
+    states/                         # US states, DC and territories
+  components/                       # reusable across the project
+    ControlledTextInput/  ControlledSsnInput/  ControlledDateInput/
+    ControlledNumberInput/  ControlledCurrencyInput/
+    ControlledRadioGroup/  ControlledNativeSelect/
+    ErrorSummary/                   # role="alert" list; links focus their field
+    ErrorBoundary/
   pages/
-    FafsaApplicationPage/     # the application form page (stub)
-  test/                       # setup and shared render helpers
+    FafsaApplicationPage/
+      wizard/
+        FafsaWizard.tsx             # step state, focus management, submission
+        steps.ts                    # step definitions and field labels
+        useFormDraft/               # sessionStorage draft (never stores an SSN)
+        useFocusField.ts
+        steps/
+          StudentInfoStep/  StatusStep/  HouseholdFinanceStep/
+          ReviewStep/  ConfirmationStep/
+  test/                             # setup and shared render helpers
 ```
 
-The form state is intentionally **flat** rather than nested — it keeps
-react-hook-form registration, per-step field lists, and error-summary lookups
-simple. The plan documented in `src/domain/schema/schema.ts` is to map it to the
-nested shape the API expects at submit time, in a `toApplicationPayload` helper
-that is not written yet.
+**Where to look first:**
 
-Each folder exposes a barrel `index.ts`, so import from the folder
-(`import { ControlledTextInput } from './components/ControlledTextInput'`) rather
-than reaching into the implementation file.
+- `src/domain/schema/schema.ts` — all seven validation rules, in one place.
+- `src/pages/FafsaApplicationPage/wizard/FafsaWizard.tsx` — step gating, focus
+  management, and how the error summary is wired.
+- `src/components/ErrorSummary/` — the summary and its focus-moving links.
 
-## Configuration files
+## Configuration
 
-| File                 | Purpose                                                    |
-| -------------------- | ---------------------------------------------------------- |
-| `vite.config.ts`     | Vite plugins plus the Vitest `test` and `coverage` config   |
-| `tsconfig.json`      | Root project references                                     |
-| `tsconfig.app.json`  | TypeScript config for `src/`                                |
-| `tsconfig.node.json` | TypeScript config for Node-side files (e.g. `vite.config.ts`) |
+| File | Purpose |
+| --- | --- |
+| `vite.config.ts` | Vite plugins plus the Vitest and coverage config |
+| `tsconfig.json` | Project references |
+| `tsconfig.app.json` | TypeScript for `src/` |
+| `tsconfig.node.json` | TypeScript for Node-side files |
